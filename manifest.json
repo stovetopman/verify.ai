@@ -1,0 +1,9 @@
+{
+    "name": "Verif.ai",
+    "description": "Misinformation detector extesion",
+    "version": "0.0",
+    "manifest_version": 3,
+    "action": {
+      "default_popup": "verifai.html"
+    }
+  }
