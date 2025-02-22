@@ -183,63 +183,141 @@ function extractArticleContent() {
     return null;
   }
 }
-
-// Wait for DOM to be loaded before setting up event listeners
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM Content Loaded');
   
-  const extractButton = document.getElementById('extract-btn');
-  console.log('Extract button found:', !!extractButton);
-  
-  if (!extractButton) {
-    console.error('Extract button not found in DOM');
-    return;
-  }
-
-  extractButton.addEventListener('click', async () => {
-    try {
-      console.log('Extract button clicked');
-      
-      const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
-      console.log('Current tab:', {
-        id: tab.id,
-        url: tab.url
-      });
-      
-      const results = await chrome.scripting.executeScript({
-        target: {tabId: tab.id},
-        function: extractArticleContent,
-        // Add this to ensure we have access to the page's DOM
-        world: "MAIN"
-      });
-      console.log('Script execution results:', results);
-
-      const articleData = results[0].result;
-      console.log('Extracted article data:', {
-        hasData: !!articleData,
-        title: articleData?.title,
-        contentLength: articleData?.content?.length
-      });
-      
-      const contentDiv = document.getElementById('article-content');
-      
-      if (articleData) {
-        console.log('Rendering article content');
-        contentDiv.innerHTML = `
-          <h2>${articleData.title || ''}</h2>
-          ${articleData.byline ? `<p><em>${articleData.byline}</em></p>` : ''}
-          ${articleData.content || 'No content found'}
-        `;
-      } else {
-        console.log('No article data to render');
-        contentDiv.textContent = 'Could not extract article content';
-      }
-    } catch (error) {
-      console.error('Error in click handler:', error);
-      document.getElementById('article-content').textContent = 'Error extracting article content';
+  // Wait for DOM to be loaded before setting up event listeners
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded');
+    
+    const extractButton = document.getElementById('extract-btn');
+    console.log('Extract button found:', !!extractButton);
+    
+    if (!extractButton) {
+      console.error('Extract button not found in DOM');
+      return;
     }
-  });
-});
-
-
   
+    extractButton.addEventListener('click', async () => {
+      try {
+        console.log('Extract button clicked');
+        
+        const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+        console.log('Current tab:', {
+          id: tab.id,
+          url: tab.url
+        });
+        
+        const results = await chrome.scripting.executeScript({
+          target: {tabId: tab.id},
+          function: extractArticleContent,
+          // Add this to ensure we have access to the page's DOM
+          world: "MAIN"
+        });
+        console.log('Script execution results:', results);
+  
+        const articleData = results[0].result;
+        console.log('Extracted article data:', {
+          hasData: !!articleData,
+          title: articleData?.title,
+          contentLength: articleData?.content?.length
+        });
+        
+        const contentDiv = document.getElementById('article-content');
+        
+        if (articleData) {
+          console.log('Rendering article content');
+          contentDiv.innerHTML = `
+            <h2>${articleData.title || ''}</h2>
+            ${articleData.byline ? `<p><em>${articleData.byline}</em></p>` : ''}
+            ${articleData.content || 'No content found'}
+          `;
+        } else {
+          console.log('No article data to render');
+          contentDiv.textContent = 'Could not extract article content';
+        }
+      } catch (error) {
+        console.error('Error in click handler:', error);
+        document.getElementById('article-content').textContent = 'Error extracting article content';
+      }
+    });
+  });
+  
+  
+  // New function to extract content and summarize it using OpenAI
+  async function extractAndSummarizeContent() {
+      try {
+        // Step 1: Extract the article content using the original function
+        const articleData = await extractArticleContent();
+    
+        if (!articleData) {
+          console.error('Failed to extract article data');
+          return;
+        }
+    
+        // Log the extracted content to verify
+        console.log('Extracted article data:', articleData);
+    
+        // Step 2: Send the extracted content to OpenAI for summarization
+        const summarizedContent = await getSummaryFromOpenAI(articleData.content);
+    
+        // Step 3: Display or use the summarized content as needed
+        console.log('Summarized Content:', summarizedContent);
+    
+        // Return the summarized content
+        return summarizedContent;
+    
+      } catch (error) {
+        console.error('Error in extraction and summarization:', error);
+      }
+    }
+    
+    // Function to get a summary from OpenAI API
+    async function getSummaryFromOpenAI(text) {
+      const apiKey = '';
+      const prompt = `Summarize the following content:\n\n${text}`;
+    
+      try {
+        const response = await fetch('https://api.openai.com/v1/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: 'text-davinci-003', // You can choose a different model if needed
+            prompt: prompt,
+            max_tokens: 150, // You can adjust the length of the summary
+          }),
+        });
+    
+        const data = await response.json();
+        const summarizedText = data.choices[0]?.text.trim();
+        return summarizedText;
+      } catch (error) {
+        console.error('Error summarizing with OpenAI:', error);
+        return 'Error summarizing content';
+      }
+    }
+  
+  
+  
+    // Button trigger to output
+  document.addEventListener('DOMContentLoaded', function () {
+      const summarizeButton = document.getElementById('summarize-btn');
+    
+      // Check if the button exists
+      if (summarizeButton) {
+        summarizeButton.addEventListener('click', async () => {
+          try {
+            console.log('Summarizing content...');
+            const summarizedContent = await extractAndSummarizeContent();
+            
+            // Output the summarized content
+            const resultDiv = document.getElementById('result-content');
+            resultDiv.textContent = summarizedContent ? summarizedContent : "Error summarizing content";
+            
+          } catch (error) {
+            console.error('Error during summarization:', error);
+          }
+        });
+      }
+    });
