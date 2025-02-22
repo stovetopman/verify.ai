@@ -3,7 +3,25 @@
     "description": "Misinformation detector extesion",
     "version": "0.0",
     "manifest_version": 3,
+    "permissions": [
+      "activeTab",
+      "scripting"
+    ],
+    "host_permissions": [
+      "<all_urls>"
+    ],
+    "web_accessible_resources": [{
+      "resources": ["dist/Readability.js"],
+      "matches": ["<all_urls>"]
+    }],
     "action": {
-      "default_popup": "verifai.html"
-    }
+      "default_popup": "popup.html"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["dist/popup.js"],
+        "run_at": "document_idle"
+      }
+    ]
   }
