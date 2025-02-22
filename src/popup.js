@@ -241,5 +241,55 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+  // Function to get a summary from OpenAI API
+  async function getSummaryFromOpenAI(text) {
+    const apiKey = '';
+    const prompt = `Summarize the following content:\n\n${text}`;
+  
+    try {
+      const response = await fetch('https://api.openai.com/v1/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'text-davinci-003', // You can choose a different model if needed
+          prompt: prompt,
+          max_tokens: 150, // You can adjust the length of the summary
+        }),
+      });
+  
+      const data = await response.json();
+      const summarizedText = data.choices[0]?.text.trim();
+      return summarizedText;
+    } catch (error) {
+      console.error('Error summarizing with OpenAI:', error);
+      return 'Error summarizing content';
+    }
+  }
 
+
+
+  // Button trigger to output
+document.addEventListener('DOMContentLoaded', function () {
+    const summarizeButton = document.getElementById('summarize-btn');
+  
+    // Check if the button exists
+    if (summarizeButton) {
+      summarizeButton.addEventListener('click', async () => {
+        try {
+          console.log('Summarizing content...');
+          const summarizedContent = await extractAndSummarizeContent();
+          
+          // Output the summarized content
+          const resultDiv = document.getElementById('result-content');
+          resultDiv.textContent = summarizedContent ? summarizedContent : "Error summarizing content";
+          
+        } catch (error) {
+          console.error('Error during summarization:', error);
+        }
+      });
+    }
+  });
   
