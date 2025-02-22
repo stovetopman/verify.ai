@@ -1,24 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Article Extractor</title>
-  <style>
-    body {
-      width: 300px;
-      font-family: Arial, sans-serif;
-    }
-    #article-content {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Article Extractor</title>
+    <style>
+        body {
+            width: 300px;
+            font-family: Arial, sans-serif;
+        }
+
+        #article-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        #result-content {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+    </style>
 </head>
+
 <body>
-  <h3>Article Extractor</h3>
-  <button id="extract-btn">Show Article Content</button>
-  <div id="article-content"></div>
-  <script src="src/popup.js"></script>
+    <h3>Article Extractor</h3>
+    <button id="extract-btn">Show Article Content</button>
+    <button id="summarize-btn">Summarize Article</button>
+    <div id="article-content"></div>
+
+
+    <h4>Summary:</h4>
+    <div id="result-content"></div>
+
+    <script src="src/popup.js"></script>
 </body>
+
 </html>
