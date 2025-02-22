@@ -1,6 +1,6 @@
 {
     "name": "Verif.ai",
-    "description": "Misinformation detector extesion",
+    "description": "Misinformation detector extension",
     "version": "0.0",
     "manifest_version": 3,
     "permissions": [
@@ -20,7 +20,7 @@
     "content_scripts": [
       {
         "matches": ["<all_urls>"],
-        "js": ["dist/popup.js"],
+        "js": ["src/popup.js"],
         "run_at": "document_idle"
       }
     ]
