@@ -249,6 +249,54 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Add fact checking functionality
+async function checkFactClaim(claim) {
+  try {
+    const response = await fetch(`https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(claim)}`, {
+      headers: {
+        'key': API_KEY
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Fact check results:', data);
+    return data;
+  } catch (error) {
+    console.error('Error checking facts:', error);
+    return null;
+  }
+}
+
+// Add event listener for fact check button
+document.getElementById('fact-check-btn').addEventListener('click', async () => {
+  const claim = document.getElementById('claim-input').value.trim();
+  if (!claim) {
+    alert('Please enter a claim to check');
+    return;
+  }
+
+  const contentDiv = document.getElementById('article-content');
+  contentDiv.textContent = 'Checking claim...';
+
+  const results = await checkFactClaim(claim);
+  if (results && results.claims && results.claims.length > 0) {
+    contentDiv.innerHTML = results.claims.map(claim => `
+      <div class="fact-check-result">
+        <h4>${claim.text}</h4>
+        <p>Rating: ${claim.claimReview[0]?.textualRating || 'No rating'}</p>
+        <p>${claim.claimReview[0]?.title || ''}</p>
+        <a href="${claim.claimReview[0]?.url || '#'}" target="_blank">Read more</a>
+      </div>
+    `).join('<hr>');
+  } else {
+    contentDiv.textContent = 'No fact check results found for this claim';
+  }
+});
+
   // Function to get a summary from OpenAI API
   async function getSummaryFromOpenAI(text) {
     

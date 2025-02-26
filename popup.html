@@ -25,12 +25,25 @@
             border: 1px solid #ccc;
         }
 
-    </style>
+      .input-group {
+      margin: 10px 0;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 5px;
+      margin: 5px 0;
+    }
+  </style>
 </head>
 
 <body>
     <h3>Article Extractor</h3>
-    <button id="extract-btn">Show Article Content</button>
+    <div class="input-group">
+    <label for="claim-input">Enter claim to fact check:</label>
+    <input type="text" id="claim-input" placeholder="Enter a claim...">
+    <button id="fact-check-btn">Check Claim</button>
+  </div>
+  <button id="extract-btn">Show Article Content</button>
     <button id="summarize-btn">Summarize Article</button>
     <div id="article-content"></div>
 
@@ -38,7 +51,7 @@
     <h4>Summary:</h4>
     <div id="result-content"></div>
 
-    <script src="src/popup.js"></script>
+    <script src="src/popup.js" type="module"></script>
 </body>
 
 </html>
