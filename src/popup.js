@@ -254,7 +254,7 @@ async function checkFactClaim(claim) {
   try {
     const response = await fetch(`https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(claim)}`, {
       headers: {
-        'key': API_KEY
+        'key': GOOGLE_API_KEY
       }
     });
 
