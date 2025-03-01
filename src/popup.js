@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
           "messages": [
             {
                 "role": "developer",
-                "content": "format each claim in the article into 1 sentance"
+                "content": "format each claim in the article into 1 sentance with numbers"
             },
             {
                 "role": "user",
