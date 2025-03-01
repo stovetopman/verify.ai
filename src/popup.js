@@ -10,16 +10,22 @@ import { CLAIMBUSTER_KEY } from './config.js';
 
 
 async function checkClaim(input_claim) {
+  input_claim = 'Trump plans to introduce a "gold card" visa that offers a path to citizenship for $5 million, replacing the EB-5 investor visa. The "gold card" would be aimed at wealthy individuals who will contribute to the U.S. economy by spending money, paying taxes, and creating jobs. The new visa would replace the EB-5 visa program within two weeks, according to Commerce Secretary Howard Lutnick. The "gold card" is essentially a green card with a path to citizenship but with fewer restrictions than the EB-5 program. The EB-5 program has been associated with fraud, and the gold card aims to eliminate these issues. Trump suggested the government could sell up to 10 million gold cards to reduce the national deficit. The "gold card" would be available to both wealthy individuals and talented people sponsored by companies. Trump claimed congressional approval is not required for implementing the gold card program.'
   // Setup the Fetch GET Request with the appropriate headers and URL
-  let response = await fetch(`https://idir.uta.edu/claimbuster/api/v2/score/text/${input_claim}`, {
+  let response = await fetch(`https://idir.uta.edu/claimbuster/api/v2/score/text/sentences/${input_claim}`, {
       method: 'GET',
       headers: {
         'x-api-key': CLAIMBUSTER_KEY,
       }
-  });
+  });    
 
   // Wait for the JSON response and then log it
   const data = await response.json();
+  data.results.forEach((result, index) => {
+    console.log(`Sentence ${index + 1}:`);
+    console.log(`Text: ${result.text}`);
+    console.log(`Score: ${result.score}\n`);
+});
   console.log(JSON.stringify(data, null, 2));
 }
 
