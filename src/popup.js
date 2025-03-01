@@ -9,15 +9,12 @@ import { CLAIMBUSTER_KEY } from './config.js';
 
 
 
-async function checkClaim() {
-  let api_key = CLAIMBUSTER_KEY;
-  let input_claim = 'The sky is blue.';
-
+async function checkClaim(input_claim) {
   // Setup the Fetch GET Request with the appropriate headers and URL
   let response = await fetch(`https://idir.uta.edu/claimbuster/api/v2/score/text/${input_claim}`, {
       method: 'GET',
       headers: {
-        'x-api-key': api_key,
+        'x-api-key': CLAIMBUSTER_KEY,
       }
   });
 
