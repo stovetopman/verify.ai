@@ -275,28 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// Add fact checking functionality
-async function checkFactClaim(claim) {
-  try {
-    const response = await fetch(`https://factchecktools.googleapis.com/v1alpha1/claims:search?query=${encodeURIComponent(claim)}`, {
-      headers: {
-        'key': GOOGLE_API_KEY
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Fact check results:', data);
-    return data;
-  } catch (error) {
-    console.error('Error checking facts:', error);
-    return null;
-  }
-}
-
   // Function to get a summary from OpenAI API
   async function getSummaryFromOpenAI(text) {
     
