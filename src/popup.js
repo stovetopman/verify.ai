@@ -1,10 +1,33 @@
-/*
-const OpenAI = require("openai").OpenAI
+import { OPENAI_KEY, CLAIMBUSTER_KEY } from "./config.js";
 
-const openai = new OpenAI({
-  apiKey: "",
-});
-*/
+async function checkClaim(articleContent) {
+  try {
+    if (!articleContent) {
+      throw new Error('No article content found');
+    }
+
+    // Setup the request
+    const response = await fetch(`https://idir.uta.edu/claimbuster/api/v2/score/text/sentences/${articleContent}`, {
+      method: 'GET',
+      headers: {
+        'x-api-key': CLAIMBUSTER_KEY,
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`ClaimBuster API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('ClaimBuster response:', data);
+    console.log(data.results[0].text);
+    return data;
+
+  } catch (error) {
+    console.error('Error in checkClaim:', error);
+    throw error;
+  }
+}
 
 // Function to extract article content
 function extractArticleContent() {
@@ -251,8 +274,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to get a summary from OpenAI API
   async function getSummaryFromOpenAI(text) {
-    
     //const prompt = `Summarize the following content:\n\n${text}`;
+    const prompt = `
+    Given a news article, get the five most relevant claims in the article and format each of them
+    into exactly one sentence in the same paragraph. Do not enumerate each claim.
+
+    ---
+
+    The following is an example output:
+
+    Apples are red. Apples are declicious. There are different types of apples. Apples are a fruit.
+    Apples are good for you.
+    `
   
     try {
 
@@ -260,21 +293,21 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ',
+          'Authorization': `Bearer ${OPENAI_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo', 
+          model: 'gpt-4o-mini', 
           "messages": [
             {
                 "role": "developer",
-                "content": "format each claim in the article into 1 sentance with numbers"
+                "content": prompt
             },
             {
                 "role": "user",
                 "content": text
             }
         ],
-        max_completion_tokens: 150,
+        max_completion_tokens: 160,
         }),
       });
 
@@ -327,4 +360,82 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
   });
+
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const startFlowButton = document.getElementById('main-btn');
+    console.log('Main start button found:', !!startFlowButton);
+    
+    if (!startFlowButton) {
+      console.error('START button not found in DOM');
+      return;
+    }
+  
+    startFlowButton.addEventListener('click', async () => {
+      try {
+        console.log('Extract button clicked');
+        
+        const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+        console.log('Current tab:', {
+          id: tab.id,
+          url: tab.url
+        });
+        
+        const results = await chrome.scripting.executeScript({
+          target: {tabId: tab.id},
+          function: extractArticleContent,
+          // Add this to ensure we have access to the page's DOM
+          world: "MAIN"
+        });
+        console.log('Script execution results:', results);
+  
+        const articleData = results[0].result;
+        console.log('Extracted article data:', {
+          hasData: !!articleData,
+          title: articleData?.title,
+          contentLength: articleData?.content?.length
+        });
+        
+        const contentDiv = document.getElementById('article-content');
+        
+        if (articleData) {
+          console.log('Rendering article content');
+          contentDiv.innerHTML = `
+            <h2>${articleData.title || ''}</h2>
+            ${articleData.byline ? `<p><em>${articleData.byline}</em></p>` : ''}
+            ${articleData.content || 'No content found'}
+          `;
+        } else {
+          console.log('No article data to render');
+          contentDiv.textContent = 'Could not extract article content';
+        }
+ 
+
+        console.log('Summarizing content...');
+        console.log(articleData.content);
+        const summarizeContent = await getSummaryFromOpenAI(articleData.content);
+
+        console.log(summarizeContent);
+        let summaryText = summarizeContent.choices[0].message.content;
+        console.log("HERE HERER HEREREHERE", summaryText);
+        
+        //DATA OBJECT THAT IS RETURNED FROM FACT CHECKING API, ADD LOGIC AFTER THIS LINE
+        const data = checkClaim(summaryText);
+
+        const finalOutput = document.getElementById('final-output');
+
+        // Output the summarized content
+        const resultDiv = document.getElementById('result-content');
+        resultDiv.textContent = summaryText ? summaryText : "Error summarizing content";
+        
+
+      } catch (error) {
+        console.error('Error:', error);
+      }
+
+      
+    
+    });
+
+  })
   
