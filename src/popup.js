@@ -26,7 +26,6 @@ async function checkClaim(input_claim) {
     console.log(`Text: ${result.text}`);
     console.log(`Score: ${result.score}\n`);
 });
-  console.log(JSON.stringify(data, null, 2));
 }
 
 //EXTRACT ARTICLE CONTENT
@@ -276,34 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-  // Function to get a summary from OpenAI API
-  async function getSummaryFromOpenAI(text) {
-    const apiKey = '';
-    const prompt = `Summarize the following content:\n\n${text}`;
-
-    try {
-      const response = await fetch('https://api.openai.com/v1/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: 'text-davinci-003', // You can choose a different model if needed
-          prompt: prompt,
-          max_tokens: 150, // You can adjust the length of the summary
-        }),
-      });
-
-      const data = await response.json();
-      const summarizedText = data.choices[0]?.text.trim();
-      return summarizedText;
-    } catch (error) {
-      console.error('Error summarizing with OpenAI:', error);
-      return 'Error summarizing content';
-    }
-  }
-
 // Add fact checking functionality
 async function checkFactClaim(claim) {
   try {
@@ -325,32 +296,6 @@ async function checkFactClaim(claim) {
     return null;
   }
 }
-
-// Add event listener for fact check button
-document.getElementById('fact-check-btn').addEventListener('click', async () => {
-  const claim = document.getElementById('claim-input').value.trim();
-  if (!claim) {
-    alert('Please enter a claim to check');
-    return;
-  }
-
-  const contentDiv = document.getElementById('article-content');
-  contentDiv.textContent = 'Checking claim...';
-
-  const results = await checkFactClaim(claim);
-  if (results && results.claims && results.claims.length > 0) {
-    contentDiv.innerHTML = results.claims.map(claim => `
-      <div class="fact-check-result">
-        <h4>${claim.text}</h4>
-        <p>Rating: ${claim.claimReview[0]?.textualRating || 'No rating'}</p>
-        <p>${claim.claimReview[0]?.title || ''}</p>
-        <a href="${claim.claimReview[0]?.url || '#'}" target="_blank">Read more</a>
-      </div>
-    `).join('<hr>');
-  } else {
-    contentDiv.textContent = 'No fact check results found for this claim';
-  }
-});
 
   // Function to get a summary from OpenAI API
   async function getSummaryFromOpenAI(text) {
