@@ -1,3 +1,11 @@
+/*
+const OpenAI = require("openai").OpenAI
+
+const openai = new OpenAI({
+  apiKey: "",
+});
+*/
+
 // Function to extract article content
 function extractArticleContent() {
   try {
@@ -243,30 +251,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to get a summary from OpenAI API
   async function getSummaryFromOpenAI(text) {
-    const apiKey = '';
-    const prompt = `Summarize the following content:\n\n${text}`;
+    
+    //const prompt = `Summarize the following content:\n\n${text}`;
   
     try {
-      const response = await fetch('https://api.openai.com/v1/completions', {
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': 'Bearer ',
         },
         body: JSON.stringify({
-          model: 'text-davinci-003', // You can choose a different model if needed
-          prompt: prompt,
-          max_tokens: 150, // You can adjust the length of the summary
+          model: 'gpt-3.5-turbo', 
+          "messages": [
+            {
+                "role": "developer",
+                "content": "format each claim in the article into 1 sentance"
+            },
+            {
+                "role": "user",
+                "content": text
+            }
+        ],
+        max_completion_tokens: 150,
         }),
       });
+
+      console.log("this is the response:" + response);
+
+        /*
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: "Hello, how are you?" }],
+      });
   
+      console.log(response.choices[0].message.content);
+      */
+
       const data = await response.json();
-      const summarizedText = data.choices[0]?.text.trim();
-      return summarizedText;
+      console.log(data);
+      return data;
     } catch (error) {
       console.error('Error summarizing with OpenAI:', error);
       return 'Error summarizing content';
     }
+
   }
 
 
@@ -280,11 +310,16 @@ document.addEventListener('DOMContentLoaded', function () {
       summarizeButton.addEventListener('click', async () => {
         try {
           console.log('Summarizing content...');
-          const summarizedContent = await extractAndSummarizeContent();
+          const articleContent = await extractArticleContent();
+          console.log(articleContent);
+          const summarizeContent = await getSummaryFromOpenAI(articleContent.content);
+
+          console.log(summarizeContent);
+          let summaryText = summarizeContent.choices[0].message.content;
           
           // Output the summarized content
           const resultDiv = document.getElementById('result-content');
-          resultDiv.textContent = summarizedContent ? summarizedContent : "Error summarizing content";
+          resultDiv.textContent = summaryText ? summaryText : "Error summarizing content";
           
         } catch (error) {
           console.error('Error during summarization:', error);
