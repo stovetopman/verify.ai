@@ -5,7 +5,28 @@ const openai = new OpenAI({
   apiKey: "",
 });
 */
+import { CLAIMBUSTER_KEY } from './config.js';
 
+
+
+async function checkClaim() {
+  let api_key = CLAIMBUSTER_KEY;
+  let input_claim = 'The sky is blue.';
+
+  // Setup the Fetch GET Request with the appropriate headers and URL
+  let response = await fetch(`https://idir.uta.edu/claimbuster/api/v2/score/text/${input_claim}`, {
+      method: 'GET',
+      headers: {
+        'x-api-key': api_key,
+      }
+  });
+
+  // Wait for the JSON response and then log it
+  const data = await response.json();
+  console.log(JSON.stringify(data, null, 2));
+}
+
+//EXTRACT ARTICLE CONTENT
 // Function to extract article content
 function extractArticleContent() {
   try {
@@ -192,6 +213,7 @@ function extractArticleContent() {
   }
 }
 
+//GET WEBPAGE CONTENT
 // Wait for DOM to be loaded before setting up event listeners
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM Content Loaded');
@@ -213,6 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
         id: tab.id,
         url: tab.url
       });
+
+      checkClaim();
       
       const results = await chrome.scripting.executeScript({
         target: {tabId: tab.id},
@@ -375,4 +399,6 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
   });
+  
+
   
