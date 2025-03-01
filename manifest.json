@@ -9,7 +9,6 @@
       "storage"
     ],
     "host_permissions": [
-      "https://api.openai.com/*",
       "<all_urls>"
     ],
     "web_accessible_resources": [
@@ -20,6 +19,10 @@
         "matches": [
           "<all_urls>"
         ]
+      },
+      {
+        "resources": ["config.js"],
+        "matches": ["<all_urls>"]
       }
     ],
     "action": {
@@ -35,5 +38,8 @@
         ],
         "run_at": "document_idle"
       }
-    ]
+    ],
+    "content_security_policy": {
+      "extension_pages": "script-src 'self'; object-src 'self'"
+    }
   }
