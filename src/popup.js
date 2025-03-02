@@ -439,3 +439,61 @@ document.addEventListener('DOMContentLoaded', function () {
 
   })
   
+  async function averageRoundedScore(resultObject) {
+    let length = resultObject.results.length;
+    let average;
+
+    for (let i = 0; i < length; i++) {
+        average+= results[i].score;
+      }
+
+    if (average <= 10){
+        score = 1;
+    }
+    else {
+        score = Math.floor(average/20) + round ((average%20)/20);
+    }
+    return score;
+}
+
+async function metricSystem(value) {
+
+    switch(value) {
+        case 1:
+          "Not Credible"
+          break;
+        case 2:
+          "Not very Credible"
+          break;
+        case 3:
+          "Somewhat Credible"
+          break;
+        case 4:
+          "Probably Credible"
+          break;
+        case 5:
+          "Credible"
+          break;
+      }
+}
+
+async function metricSystemImage(value) {
+
+    switch(value) {
+        case 1:
+          //image
+          break;
+        case 2:
+          //image
+          break;
+        case 3:
+          //image
+          break;
+        case 4:
+          //image
+          break;
+        case 5:
+         //image
+          break;
+      }
+}
