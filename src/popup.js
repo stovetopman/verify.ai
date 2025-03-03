@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function () {
           <div style="margin-top: 20px; padding: 15px; border-radius: 8px; background-color: ${metric.color}15;">
             <div style="display: flex; align-items: center; margin-bottom: 15px;">
               <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${metric.color}; margin-right: 12px;"></div>
-              <h4 style="margin: 0; font-size: 1.2rem;">${metric.text}</h4>
+              <h4 style="margin: 0; font-size: 1.2rem; font-weight: 700;">${metric.text}</h4>
             </div>
 
             <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function () {
               background-color: ${metric.color};
               margin-right: 12px;">
             </div>
-            <h4 style="margin: 0; font-size: 1.2rem;">${metric.text}</h4>
+            <h4 style="margin: 0; font-size: 1.2rem; font-weight: 700;">${metric.text}</h4>
           </div>
 
           <div style="
@@ -742,11 +742,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
           // Update the content sections to handle scrolling better
           panel.innerHTML = `
-            <div style="padding: 15px; background-color: ${metric.color}15;">
+            <div style="padding: 15px; background-color: ${metric.color}15; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <div style="display: flex; align-items: center;">
                   <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${metric.color}; margin-right: 12px;"></div>
-                  <h4 style="margin: 0; font-size: 1.2rem;">${metric.text}</h4>
+                  <h4 style="margin: 0; font-size: 1.2rem; font-weight: 700; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${metric.text}</h4>
                 </div>
                 <button id="verify-ai-close-button" style="
                   background: none;
@@ -755,19 +755,20 @@ document.addEventListener('DOMContentLoaded', function() {
                   padding: 5px;
                   font-size: 18px;
                   color: #666;
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 ">×</button>
               </div>
 
-              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
+              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 5px;">Overall Score: ${score}/5</div>
                 <div style="font-size: 0.9rem; color: #666;">Based on analysis of ${sortedClaims.length} claims</div>
               </div>
 
-              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
+              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
                 <div style="max-height: 300px; overflow-y: auto;">
                   ${sortedClaims.map((claim, index) => `
-                    <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)};">
+                    <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                       <div style="font-size: 0.9rem; margin-bottom: 4px;">${index + 1}. ${claim.text}</div>
                       <div style="font-size: 0.8rem; color: #666; display: flex; align-items: center;">
                         <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getScoreColor(claim.score)}; margin-right: 6px;"></span>
@@ -778,7 +779,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
               </div>
 
-              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40;">
+              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 <div style="font-weight: 500; margin-bottom: 10px;">Article Summary:</div>
                 <div style="font-size: 0.9rem; line-height: 1.5;">
                   ${summaryText}
