@@ -615,6 +615,14 @@ document.addEventListener('DOMContentLoaded', function() {
   // Clear existing buttons
   buttonGroup.innerHTML = '';
 
+  // Create the reformat button
+  const reformatButton = document.createElement('button');
+  reformatButton.id = 'reformat-btn';
+  reformatButton.textContent = 'Reformat Article';
+  reformatButton.className = 'primary-button';
+  reformatButton.style.marginBottom = '10px'; // Add spacing between buttons
+  buttonGroup.appendChild(reformatButton);
+
   // Create the analyze button
   const analyzeButton = document.createElement('button');
   analyzeButton.id = 'analyze-btn';
@@ -622,11 +630,47 @@ document.addEventListener('DOMContentLoaded', function() {
   analyzeButton.className = 'primary-button';
   buttonGroup.appendChild(analyzeButton);
 
+  // Add click handler for reformat button
+  reformatButton.addEventListener('click', async () => {
+    try {
+      const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
+      
+      // Show loading state
+      const finalOutput = document.getElementById('final-output');
+      finalOutput.innerHTML = `
+        <div style="text-align: center; margin-top: 15px;">
+          <div style="color: #666; margin-bottom: 10px;">Reformatting article...</div>
+          <div class="progress-bar">
+            <div class="progress-bar-fill"></div>
+          </div>
+        </div>
+      `;
+
+      // Execute the cleanup
+      await chrome.scripting.executeScript({
+        target: {tabId: tab.id},
+        function: cleanPageContent,
+        world: "MAIN"
+      });
+
+      window.close();
+    } catch (error) {
+      console.error('Error reformatting:', error);
+      document.getElementById('final-output').innerHTML = `
+        <div style="text-align: center; color: #FF4444;">
+          Error reformatting article
+        </div>
+      `;
+      window.close();
+    }
+  });
+
+  // Keep existing analyze button click handler
   analyzeButton.addEventListener('click', async () => {
     try {
       const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
       
-      // Show loading text with progress bar
+      // Show loading state
       const finalOutput = document.getElementById('final-output');
       finalOutput.innerHTML = `
         <div style="text-align: center; margin-top: 15px;">
@@ -637,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       `;
 
-      // Extract content and perform analysis
+      // Continue with existing analysis code without the cleanup...
       const results = await chrome.scripting.executeScript({
         target: {tabId: tab.id},
         function: extractArticleContent,
@@ -793,196 +837,116 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// Add this function near the top with other utility functions
-function cleanWebpage() {
-  // Elements to remove (common selectors for ads and unnecessary content)
-  const selectorsToRemove = [
+// Add this function to handle content cleanup
+function cleanPageContent() {
+  // Elements to remove (common ad and unnecessary content selectors)
+  const removeSelectors = [
     // Ads
     '[class*="ad-"]', '[class*="ads-"]', '[id*="ad-"]', '[id*="ads-"]',
-    '[class*="advertisement"]', '[id*="advertisement"]',
-    'ins.adsbygoogle', '.ad-container', '.ad-wrapper',
-    // Social media
+    'ins.adsbygoogle', '.advertisement', '[class*="sponsor"]',
+    
+    // Social media & sharing
     '.social-share', '.share-buttons', '.social-media',
-    // Popups and overlays
-    '.popup', '.modal', '.overlay', '[class*="popup"]', '[id*="popup"]',
-    '[class*="modal"]', '[id*="modal"]', '.newsletter-signup',
-    // Sidebars and non-essential sections
-    '.sidebar', 'aside', '.related-articles', '.recommended',
-    '.trending', '.popular-posts', '.widget-area',
+    
+    // Popups & overlays
+    '.popup', '.modal', '.overlay', '.newsletter-signup',
+    
+    // Sidebars & non-essential content
+    '.sidebar:not(.article-sidebar)', 'aside:not(.article-aside)',
+    '.related-articles', '.recommended', '.trending',
+    
     // Comments
     '#comments', '.comments-section', '.disqus_thread',
-    // Fixed elements
-    '.sticky-header', '.fixed-header', '.floating-header',
-    '.sticky-footer', '.fixed-footer', '.floating-footer',
-    // Newsletter and subscription
+    
+    // Newsletter & subscription
     '.newsletter', '.subscribe', '.subscription',
-    // Cookie notices and banners
+    
+    // Cookie notices & banners
     '.cookie-notice', '.cookie-banner', '.gdpr',
+    
     // Other distractions
-    '.outbrain', '.taboola', '[class*="sponsored"]', '[id*="sponsored"]',
-    '.promoted', '.partner-content', '.paid-content'
+    '.outbrain', '.taboola', '[class*="sponsored"]',
+    '.promoted', '.partner-content'
   ];
 
-  // CSS to inject for better reading experience
-  const readabilityStyles = `
-    body {
-      overflow: auto !important;
-      position: static !important;
-    }
-    article, .article, .post, .content-area, .main-content {
-      width: 100% !important;
-      max-width: 800px !important;
-      margin: 0 auto !important;
-      padding: 20px !important;
-      float: none !important;
-    }
-    p, li {
-      font-size: 18px !important;
-      line-height: 1.6 !important;
-      margin-bottom: 1.2em !important;
-      color: #333 !important;
-    }
-    h1, h2, h3, h4, h5, h6 {
-      margin-top: 1.5em !important;
-      margin-bottom: 0.8em !important;
-      line-height: 1.3 !important;
-    }
-  `;
+  // Find the main article container first
+  const articleSelectors = [
+    'article',
+    '[role="article"]',
+    '.article-body',
+    '.article-content',
+    '.story-body',
+    '.post-content',
+    'main',
+    '#article-body'
+  ];
 
-  // Remove distracting elements
-  selectorsToRemove.forEach(selector => {
-    document.querySelectorAll(selector).forEach(element => {
-      element.remove();
-    });
-  });
-
-  // Remove inline styles that might interfere with reading
-  document.querySelectorAll('[style]').forEach(element => {
-    if (element.tagName.toLowerCase() !== 'mark') { // Don't remove styles from our highlights
-      element.removeAttribute('style');
+  let mainArticle = null;
+  for (const selector of articleSelectors) {
+    const element = document.querySelector(selector);
+    if (element) {
+      mainArticle = element;
+      break;
     }
-  });
-
-  // Remove hidden overflow from body and html
-  document.body.style.overflow = 'auto';
-  document.documentElement.style.overflow = 'auto';
-
-  // Add readability styles
-  const style = document.createElement('style');
-  style.textContent = readabilityStyles;
-  document.head.appendChild(style);
-
-  // Remove fixed positioning
-  document.querySelectorAll('*').forEach(element => {
-    const position = window.getComputedStyle(element).position;
-    if (position === 'fixed' || position === 'sticky') {
-      element.style.position = 'static';
-    }
-  });
-
-  // Force black text on white background for main content
-  const mainContent = document.querySelector('article, .article, .post, .content-area, .main-content');
-  if (mainContent) {
-    mainContent.style.backgroundColor = '#ffffff';
-    mainContent.style.color = '#333333';
   }
 
-  return true;
-}
+  if (mainArticle) {
+    // Store the original styles of the main article
+    const computedStyle = window.getComputedStyle(mainArticle);
+    const originalStyles = {
+      width: computedStyle.width,
+      margin: computedStyle.margin,
+      padding: computedStyle.padding,
+      fontSize: computedStyle.fontSize,
+      lineHeight: computedStyle.lineHeight,
+      fontFamily: computedStyle.fontFamily,
+      color: computedStyle.color,
+      backgroundColor: computedStyle.backgroundColor
+    };
 
-// Add this function near the top with other utility functions
-function createFloatingPanel(metric, score, sortedClaims, summaryText) {
-  const panel = document.createElement('div');
-  panel.id = 'verify-ai-results-panel';
-  panel.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 400px;
-    max-height: 90vh;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 999999;
-    overflow-y: auto;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    animation: slideInPanel 0.3s ease-out;
-  `;
+    // Remove unwanted elements outside the main article
+    removeSelectors.forEach(selector => {
+      document.querySelectorAll(selector).forEach(element => {
+        if (!mainArticle.contains(element)) {
+          element.remove();
+        }
+      });
+    });
 
-  // Add styles for the animation
-  const style = document.createElement('style');
-  style.textContent = `
-    @keyframes slideInPanel {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    #verify-ai-results-panel::-webkit-scrollbar {
-      width: 8px;
-    }
-    #verify-ai-results-panel::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 4px;
-    }
-    #verify-ai-results-panel::-webkit-scrollbar-thumb {
-      background: #888;
-      border-radius: 4px;
-    }
-    #verify-ai-results-panel::-webkit-scrollbar-thumb:hover {
-      background: #666;
-    }
-  `;
-  document.head.appendChild(style);
+    // Clean up the main article while preserving its structure
+    const unwantedInArticle = mainArticle.querySelectorAll(removeSelectors.join(','));
+    unwantedInArticle.forEach(element => {
+      if (!element.closest('p, h1, h2, h3, h4, h5, h6')) {
+        element.remove();
+      }
+    });
 
-  panel.innerHTML = `
-    <div style="padding: 15px; background-color: ${metric.color}15;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <div style="display: flex; align-items: center;">
-          <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${metric.color}; margin-right: 12px;"></div>
-          <h4 style="margin: 0; font-size: 1.2rem;">${metric.text}</h4>
-        </div>
-        <button id="verify-ai-close-button" style="
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 5px;
-          font-size: 18px;
-          color: #666;
-        ">×</button>
-      </div>
+    // Restore original styles to maintain formatting
+    Object.assign(mainArticle.style, originalStyles);
 
-      <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
-        <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 5px;">Overall Score: ${score}/5</div>
-        <div style="font-size: 0.9rem; color: #666;">Based on analysis of ${sortedClaims.length} claims</div>
-      </div>
+    // Ensure the article is visible and centered
+    mainArticle.style.display = 'block';
+    mainArticle.style.margin = '0 auto';
+    mainArticle.style.maxWidth = '800px';
+    mainArticle.style.position = 'relative';
+    mainArticle.style.zIndex = '1';
 
-      <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
-        <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
-        <div style="max-height: 300px; overflow-y: auto;">
-          ${sortedClaims.map((claim, index) => `
-            <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)};">
-              <div style="font-size: 0.9rem; margin-bottom: 4px;">${index + 1}. ${claim.text}</div>
-              <div style="font-size: 0.8rem; color: #666; display: flex; align-items: center;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getScoreColor(claim.score)}; margin-right: 6px;"></span>
-                Score: ${claim.formattedScore}
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
+    // Remove fixed positioning from headers and other elements
+    document.querySelectorAll('header, nav, footer').forEach(element => {
+      if (!mainArticle.contains(element)) {
+        element.remove();
+      }
+    });
 
-      <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40;">
-        <div style="font-weight: 500; margin-bottom: 10px;">Article Summary:</div>
-        <div style="font-size: 0.9rem; line-height: 1.5;">
-          ${summaryText}
-        </div>
-      </div>
-    </div>
-  `;
+    // Remove background videos/images that might interfere
+    document.querySelectorAll('video, iframe').forEach(element => {
+      if (!mainArticle.contains(element)) {
+        element.remove();
+      }
+    });
 
-  // Add close button functionality
-  panel.querySelector('#verify-ai-close-button').addEventListener('click', () => {
-    panel.remove();
-  });
-
-  return panel;
+    // Ensure body scrolling is enabled
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+  }
 }
