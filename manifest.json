@@ -1,12 +1,11 @@
 {
-    "name": "Verif.ai",
-    "description": "Misinformation detector extension",
-    "version": "0.0",
     "manifest_version": 3,
+    "name": "VerifyAI",
+    "version": "1.0",
+    "description": "Your description here",
     "permissions": [
       "activeTab",
-      "scripting",
-      "storage"
+      "scripting"
     ],
     "host_permissions": [
       "https://api.openai.com/*",
@@ -22,8 +21,12 @@
         ]
       }
     ],
+    "icons": {
+      "128": "icon.png"
+    },
     "action": {
-      "default_popup": "popup.html"
+      "default_popup": "popup.html",
+      "default_icon": "icon.png"
     },
     "content_scripts": [
       {

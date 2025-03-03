@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       `;
 
-      // Extract content
+      // Extract content and perform analysis
       const results = await chrome.scripting.executeScript({
         target: {tabId: tab.id},
         function: extractArticleContent,
@@ -650,16 +650,11 @@ document.addEventListener('DOMContentLoaded', function() {
         throw new Error('Could not extract article content');
       }
 
-      // Get the summary from OpenAI
       const summarizeContent = await getSummaryFromOpenAI(articleData.content);
       const summaryText = summarizeContent.choices[0].message.content;
-
-      // Get fact check results
       const claimBusterResult = await checkClaim(summaryText);
       const score = await averageRoundedScore(claimBusterResult);
       const metric = metricSystem(score);
-
-      // Sort and format claims
       const sortedClaims = claimBusterResult.results
         .sort((a, b) => b.score - a.score)
         .map(claim => ({
@@ -705,7 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
           // Update the content sections to handle scrolling better
           panel.innerHTML = `
             <div style="padding: 15px; background-color: ${metric.color}15;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: sticky; top: 0; background-color: ${metric.color}15; padding-bottom: 15px; z-index: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <div style="display: flex; align-items: center;">
                   <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${metric.color}; margin-right: 12px;"></div>
                   <h4 style="margin: 0; font-size: 1.2rem;">${metric.text}</h4>
@@ -727,7 +722,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
               <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
                 <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
-                <div style="max-height: 300px; overflow-y: auto;">
+                <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
                   ${sortedClaims.map((claim, index) => `
                     <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)};">
                       <div style="font-size: 0.9rem; margin-bottom: 4px;">${index + 1}. ${claim.text}</div>
@@ -742,20 +737,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
               <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40;">
                 <div style="font-weight: 500; margin-bottom: 10px;">Article Summary:</div>
-                <div style="font-size: 0.9rem; line-height: 1.5;">
+                <div style="font-size: 0.9rem; line-height: 1.5; max-height: 200px; overflow-y: auto; padding-right: 8px;">
                   ${summaryText}
                 </div>
               </div>
             </div>
           `;
 
-          // Add styles for better scrolling
+          // Update the scrollbar styles
           const style = document.createElement('style');
           style.textContent = `
             @keyframes slideInPanel {
               from { transform: translateX(100%); opacity: 0; }
               to { transform: translateX(0); opacity: 1; }
             }
+            /* Main panel scrollbar */
             #verify-ai-results-panel::-webkit-scrollbar {
               width: 8px;
             }
@@ -770,6 +766,22 @@ document.addEventListener('DOMContentLoaded', function() {
             #verify-ai-results-panel::-webkit-scrollbar-thumb:hover {
               background: #666;
             }
+            
+            /* Inner scrollbars (claims and summary sections) */
+            #verify-ai-results-panel *::-webkit-scrollbar {
+              width: 6px;
+            }
+            #verify-ai-results-panel *::-webkit-scrollbar-track {
+              background: #f1f1f1;
+              border-radius: 3px;
+            }
+            #verify-ai-results-panel *::-webkit-scrollbar-thumb {
+              background: #ddd;
+              border-radius: 3px;
+            }
+            #verify-ai-results-panel *::-webkit-scrollbar-thumb:hover {
+              background: #888;
+            }
           `;
           document.head.appendChild(style);
 
@@ -783,12 +795,10 @@ document.addEventListener('DOMContentLoaded', function() {
         args: [metric, score, sortedClaims, summaryText]
       });
 
-      // Update the popup UI with a success message
-      finalOutput.innerHTML = `
-        <div style="padding: 15px; text-align: center; color: #4CAF50;">
-          Analysis complete! Results are displayed on the webpage.
-        </div>
-      `;
+      // Close the popup window after 0.5 seconds
+      setTimeout(() => {
+        window.close();
+      }, 500);
           
         } catch (error) {
       console.error('Error in analysis:', error);
@@ -797,6 +807,10 @@ document.addEventListener('DOMContentLoaded', function() {
           Error analyzing article: ${error.message}
         </div>
       `;
+      // Close popup after 0.5 seconds even if there's an error
+      setTimeout(() => {
+        window.close();
+      }, 500);
     }
   });
 });
@@ -924,6 +938,7 @@ function createFloatingPanel(metric, score, sortedClaims, summaryText) {
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
+    /* Main panel scrollbar */
     #verify-ai-results-panel::-webkit-scrollbar {
       width: 8px;
     }
@@ -938,12 +953,28 @@ function createFloatingPanel(metric, score, sortedClaims, summaryText) {
     #verify-ai-results-panel::-webkit-scrollbar-thumb:hover {
       background: #666;
     }
+    
+    /* Inner scrollbars (claims and summary sections) */
+    #verify-ai-results-panel *::-webkit-scrollbar {
+      width: 6px;
+    }
+    #verify-ai-results-panel *::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    #verify-ai-results-panel *::-webkit-scrollbar-thumb {
+      background: #ddd;
+      border-radius: 3px;
+    }
+    #verify-ai-results-panel *::-webkit-scrollbar-thumb:hover {
+      background: #888;
+    }
   `;
   document.head.appendChild(style);
 
   panel.innerHTML = `
     <div style="padding: 15px; background-color: ${metric.color}15;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; position: sticky; top: 0; background-color: ${metric.color}15; padding-bottom: 15px; z-index: 1;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
         <div style="display: flex; align-items: center;">
           <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${metric.color}; margin-right: 12px;"></div>
           <h4 style="margin: 0; font-size: 1.2rem;">${metric.text}</h4>
@@ -965,7 +996,7 @@ function createFloatingPanel(metric, score, sortedClaims, summaryText) {
 
       <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
         <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
-        <div style="max-height: 300px; overflow-y: auto;">
+        <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
           ${sortedClaims.map((claim, index) => `
             <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)};">
               <div style="font-size: 0.9rem; margin-bottom: 4px;">${index + 1}. ${claim.text}</div>
@@ -980,7 +1011,7 @@ function createFloatingPanel(metric, score, sortedClaims, summaryText) {
 
       <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40;">
         <div style="font-weight: 500; margin-bottom: 10px;">Article Summary:</div>
-        <div style="font-size: 0.9rem; line-height: 1.5;">
+        <div style="font-size: 0.9rem; line-height: 1.5; max-height: 200px; overflow-y: auto; padding-right: 8px;">
           ${summaryText}
         </div>
       </div>
