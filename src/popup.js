@@ -222,21 +222,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Function to get a summary from OpenAI API
   async function getSummaryFromOpenAI(text) {
-    //const prompt = `Summarize the following content:\n\n${text}`;
     const prompt = `
-    Given a news article, get the five most relevant claims in the article and format each of them
-    into exactly one sentence in the same paragraph. Do not enumerate each claim.
+      Analyze this article thoroughly and extract the 5 most significant claims or statements. For each claim:
+      1. Focus on factual assertions, key statistics, and major conclusions
+      2. Prioritize claims that are specific, verifiable, and impactful
+      3. Include relevant context and details that support the claim
+      4. Capture any quantitative data, expert opinions, or research findings
+      5. Maintain the original meaning and nuance of each claim
 
-    ---
+      Format each claim as a single, clear sentence that captures the complete context.
+      Combine all claims into a single paragraph without enumeration.
 
-    The following is an example output:
-
-    Apples are red. Apples are declicious. There are different types of apples. Apples are a fruit.
-    Apples are good for you.
+      Example output format:
+      The study found that 87% of climate scientists agree with the consensus on global warming. New satellite data reveals Arctic ice has decreased by 13% over the past decade. Research from Stanford University demonstrates a direct link between air pollution and respiratory diseases in urban areas. The government's economic report indicates a 3.2% growth in GDP during the last quarter. Multiple independent studies confirm that regular exercise reduces heart disease risk by up to 40% in adults over 50.
     `
   
     try {
-
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -245,39 +246,31 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         body: JSON.stringify({
           model: 'gpt-4o-mini', 
-          "messages": [
+          messages: [
             {
-                "role": "developer",
-                "content": prompt
+              role: "system",
+              content: "You are a precise fact-checking assistant that extracts detailed, verifiable claims from articles while preserving important context and supporting details."
             },
             {
-                "role": "user",
-                "content": text
+              role: "user",
+              content: prompt
+            },
+            {
+              role: "user",
+              content: text
             }
-        ],
-        max_completion_tokens: 160,
+          ],
+          max_completion_tokens: 200, // Increased token limit for more detailed responses
         }),
       });
 
-      console.log("this is the response:" + response);
-
-        /*
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: "Hello, how are you?" }],
-      });
-  
-      console.log(response.choices[0].message.content);
-      */
-
       const data = await response.json();
-      console.log(data);
+      console.log("OpenAI Response:", data);
       return data;
     } catch (error) {
       console.error('Error summarizing with OpenAI:', error);
       return 'Error summarizing content';
     }
-
   }
 
 
@@ -460,16 +453,41 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Update the metricSystem function to include explanations
   function metricSystem(value) {
     const metrics = {
-      1: { text: "Not Credible", color: "#FF4444" },
-      2: { text: "Not Very Credible", color: "#FFA500" },
-      3: { text: "Somewhat Credible", color: "#FFD700" },
-      4: { text: "Probably Credible", color: "#90EE90" },
-      5: { text: "Credible", color: "#4CAF50" }
+      1: { 
+        text: "Not Credible", 
+        color: "#FF4444",
+        explanation: "The article contains multiple unverified claims or demonstrates significant bias. Claims lack supporting evidence or contradict established facts."
+      },
+      2: { 
+        text: "Not Very Credible", 
+        color: "#FFA500",
+        explanation: "Most claims require additional verification. The article may present opinions as facts or lack proper sourcing for its major assertions."
+      },
+      3: { 
+        text: "Somewhat Credible", 
+        color: "#FFD700",
+        explanation: "The article contains a mix of verified and unverified claims. Some claims are supported by evidence, while others require further verification."
+      },
+      4: { 
+        text: "Probably Credible", 
+        color: "#90EE90",
+        explanation: "Most claims are supported by evidence and align with reliable sources. The article presents information in a generally balanced way."
+      },
+      5: { 
+        text: "Credible", 
+        color: "#4CAF50",
+        explanation: "Claims are well-supported by evidence and can be verified through reliable sources. The article presents information accurately and objectively."
+      }
     };
     
-    return metrics[value] || { text: "Unable to determine credibility", color: "#808080" };
+    return metrics[value] || { 
+      text: "Unable to determine credibility", 
+      color: "#808080",
+      explanation: "Unable to assess the credibility of the claims in this article."
+    };
   }
 
   async function performFactCheck() {
@@ -527,6 +545,9 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <div style="font-size: 0.9rem; color: #666;">
               Based on analysis of ${claimBusterResult.results.length} claims
+            </div>
+            <div style="font-size: 0.9rem; color: #444; margin-top: 8px; padding-top: 8px; border-top: 1px solid ${metric.color}20; line-height: 1.4;">
+              ${metric.explanation}
             </div>
           </div>
 
@@ -762,6 +783,9 @@ document.addEventListener('DOMContentLoaded', function() {
               <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 5px;">Overall Score: ${score}/5</div>
                 <div style="font-size: 0.9rem; color: #666;">Based on analysis of ${sortedClaims.length} claims</div>
+                <div style="font-size: 0.9rem; color: #444; margin-top: 8px; padding-top: 8px; border-top: 1px solid ${metric.color}20; line-height: 1.4;">
+                  ${metric.explanation}
+                </div>
               </div>
 
               <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
