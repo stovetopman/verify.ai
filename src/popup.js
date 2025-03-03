@@ -622,16 +622,15 @@ document.addEventListener('DOMContentLoaded', function() {
   analyzeButton.className = 'primary-button';
   buttonGroup.appendChild(analyzeButton);
 
-  // Add click handler for analyze button
   analyzeButton.addEventListener('click', async () => {
     try {
       const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
       
-      // Show loading state in popup
+      // Show loading text with progress bar
       const finalOutput = document.getElementById('final-output');
       finalOutput.innerHTML = `
-        <div class="loading">
-          <div>Analyzing article...</div>
+        <div style="text-align: center; margin-top: 15px;">
+          <div style="color: #666; margin-bottom: 10px;">Analyzing article...</div>
           <div class="progress-bar">
             <div class="progress-bar-fill"></div>
           </div>
@@ -722,7 +721,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
               <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
                 <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
-                <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
+                <div style="max-height: 300px; overflow-y: auto;">
                   ${sortedClaims.map((claim, index) => `
                     <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)};">
                       <div style="font-size: 0.9rem; margin-bottom: 4px;">${index + 1}. ${claim.text}</div>
@@ -737,21 +736,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
               <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40;">
                 <div style="font-weight: 500; margin-bottom: 10px;">Article Summary:</div>
-                <div style="font-size: 0.9rem; line-height: 1.5; max-height: 200px; overflow-y: auto; padding-right: 8px;">
+                <div style="font-size: 0.9rem; line-height: 1.5;">
                   ${summaryText}
                 </div>
               </div>
             </div>
           `;
 
-          // Update the scrollbar styles
+          // Add styles for better scrolling
           const style = document.createElement('style');
           style.textContent = `
             @keyframes slideInPanel {
               from { transform: translateX(100%); opacity: 0; }
               to { transform: translateX(0); opacity: 1; }
             }
-            /* Main panel scrollbar */
             #verify-ai-results-panel::-webkit-scrollbar {
               width: 8px;
             }
@@ -766,22 +764,6 @@ document.addEventListener('DOMContentLoaded', function() {
             #verify-ai-results-panel::-webkit-scrollbar-thumb:hover {
               background: #666;
             }
-            
-            /* Inner scrollbars (claims and summary sections) */
-            #verify-ai-results-panel *::-webkit-scrollbar {
-              width: 6px;
-            }
-            #verify-ai-results-panel *::-webkit-scrollbar-track {
-              background: #f1f1f1;
-              border-radius: 3px;
-            }
-            #verify-ai-results-panel *::-webkit-scrollbar-thumb {
-              background: #ddd;
-              border-radius: 3px;
-            }
-            #verify-ai-results-panel *::-webkit-scrollbar-thumb:hover {
-              background: #888;
-            }
           `;
           document.head.appendChild(style);
 
@@ -795,22 +777,18 @@ document.addEventListener('DOMContentLoaded', function() {
         args: [metric, score, sortedClaims, summaryText]
       });
 
-      // Close the popup window after 0.5 seconds
-      setTimeout(() => {
-        window.close();
-      }, 500);
+      // Close the popup window immediately
+      window.close();
           
         } catch (error) {
       console.error('Error in analysis:', error);
       document.getElementById('final-output').innerHTML = `
-        <div style="color: #FF4444; padding: 10px;">
-          Error analyzing article: ${error.message}
+        <div style="text-align: center; color: #FF4444;">
+          Error analyzing article
         </div>
       `;
-      // Close popup after 0.5 seconds even if there's an error
-      setTimeout(() => {
-        window.close();
-      }, 500);
+      // Close popup immediately even if there's an error
+      window.close();
     }
   });
 });
@@ -938,7 +916,6 @@ function createFloatingPanel(metric, score, sortedClaims, summaryText) {
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
-    /* Main panel scrollbar */
     #verify-ai-results-panel::-webkit-scrollbar {
       width: 8px;
     }
@@ -952,22 +929,6 @@ function createFloatingPanel(metric, score, sortedClaims, summaryText) {
     }
     #verify-ai-results-panel::-webkit-scrollbar-thumb:hover {
       background: #666;
-    }
-    
-    /* Inner scrollbars (claims and summary sections) */
-    #verify-ai-results-panel *::-webkit-scrollbar {
-      width: 6px;
-    }
-    #verify-ai-results-panel *::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 3px;
-    }
-    #verify-ai-results-panel *::-webkit-scrollbar-thumb {
-      background: #ddd;
-      border-radius: 3px;
-    }
-    #verify-ai-results-panel *::-webkit-scrollbar-thumb:hover {
-      background: #888;
     }
   `;
   document.head.appendChild(style);
@@ -996,7 +957,7 @@ function createFloatingPanel(metric, score, sortedClaims, summaryText) {
 
       <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
         <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
-        <div style="max-height: 400px; overflow-y: auto; padding-right: 8px;">
+        <div style="max-height: 300px; overflow-y: auto;">
           ${sortedClaims.map((claim, index) => `
             <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)};">
               <div style="font-size: 0.9rem; margin-bottom: 4px;">${index + 1}. ${claim.text}</div>
@@ -1011,7 +972,7 @@ function createFloatingPanel(metric, score, sortedClaims, summaryText) {
 
       <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40;">
         <div style="font-weight: 500; margin-bottom: 10px;">Article Summary:</div>
-        <div style="font-size: 0.9rem; line-height: 1.5; max-height: 200px; overflow-y: auto; padding-right: 8px;">
+        <div style="font-size: 0.9rem; line-height: 1.5;">
           ${summaryText}
         </div>
       </div>
