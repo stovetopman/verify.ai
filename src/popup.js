@@ -453,41 +453,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  // Update the metricSystem function to include explanations
   function metricSystem(value) {
     const metrics = {
-      1: { 
-        text: "Not Credible", 
-        color: "#FF4444",
-        explanation: "The article contains multiple unverified claims or demonstrates significant bias. Claims lack supporting evidence or contradict established facts."
-      },
-      2: { 
-        text: "Not Very Credible", 
-        color: "#FFA500",
-        explanation: "Most claims require additional verification. The article may present opinions as facts or lack proper sourcing for its major assertions."
-      },
-      3: { 
-        text: "Somewhat Credible", 
-        color: "#FFD700",
-        explanation: "The article contains a mix of verified and unverified claims. Some claims are supported by evidence, while others require further verification."
-      },
-      4: { 
-        text: "Probably Credible", 
-        color: "#90EE90",
-        explanation: "Most claims are supported by evidence and align with reliable sources. The article presents information in a generally balanced way."
-      },
-      5: { 
-        text: "Credible", 
-        color: "#4CAF50",
-        explanation: "Claims are well-supported by evidence and can be verified through reliable sources. The article presents information accurately and objectively."
-      }
+      1: { text: "Not Credible", color: "#FF4444" },
+      2: { text: "Not Very Credible", color: "#FFA500" },
+      3: { text: "Somewhat Credible", color: "#FFD700" },
+      4: { text: "Probably Credible", color: "#90EE90" },
+      5: { text: "Credible", color: "#4CAF50" }
     };
     
-    return metrics[value] || { 
-      text: "Unable to determine credibility", 
-      color: "#808080",
-      explanation: "Unable to assess the credibility of the claims in this article."
-    };
+    return metrics[value] || { text: "Unable to determine credibility", color: "#808080" };
   }
 
   async function performFactCheck() {
@@ -545,9 +520,6 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <div style="font-size: 0.9rem; color: #666;">
               Based on analysis of ${claimBusterResult.results.length} claims
-            </div>
-            <div style="font-size: 0.9rem; color: #444; margin-top: 8px; padding-top: 8px; border-top: 1px solid ${metric.color}20; line-height: 1.4;">
-              ${metric.explanation}
             </div>
           </div>
 
@@ -783,9 +755,6 @@ document.addEventListener('DOMContentLoaded', function() {
               <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                 <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 5px;">Overall Score: ${score}/5</div>
                 <div style="font-size: 0.9rem; color: #666;">Based on analysis of ${sortedClaims.length} claims</div>
-                <div style="font-size: 0.9rem; color: #444; margin-top: 8px; padding-top: 8px; border-top: 1px solid ${metric.color}20; line-height: 1.4;">
-                  ${metric.explanation}
-                </div>
               </div>
 
               <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
