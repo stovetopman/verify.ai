@@ -663,7 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
       
-      // Show loading state
+      // Show loading state in popup
       const finalOutput = document.getElementById('final-output');
       finalOutput.innerHTML = `
         <div style="text-align: center; margin-top: 15px;">
@@ -674,18 +674,18 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       `;
 
-      // Continue with existing analysis code without the cleanup...
+      // Show the loading animation
+      await showLoadingAnimation(tab.id);
+
+      // Perform the analysis
       const results = await chrome.scripting.executeScript({
         target: {tabId: tab.id},
         function: extractArticleContent,
         world: "MAIN"
       });
 
+      // Continue with your existing analysis code...
       const articleData = results[0].result;
-      if (!articleData) {
-        throw new Error('Could not extract article content');
-      }
-
       const summarizeContent = await getSummaryFromOpenAI(articleData.content);
       const summaryText = summarizeContent.choices[0].message.content;
       const claimBusterResult = await checkClaim(summaryText);
@@ -698,7 +698,10 @@ document.addEventListener('DOMContentLoaded', function() {
           formattedScore: Math.round(claim.score * 100) + '%'
         }));
 
-      // Create and inject the floating panel
+      // Remove the loading animation before showing results
+      await removeLoadingAnimation(tab.id);
+
+      // Create and inject the results panel
       await chrome.scripting.executeScript({
         target: {tabId: tab.id},
         func: (metric, score, sortedClaims, summaryText) => {
@@ -880,9 +883,9 @@ function cleanPageContent() {
     const element = document.querySelector(selector);
     if (element) {
       mainArticle = element;
-      break;
-    }
-  }
+          break;
+      }
+}
 
   if (mainArticle) {
     // Store the original styles of the main article
@@ -943,4 +946,85 @@ function cleanPageContent() {
     document.body.style.overflow = 'auto';
     document.documentElement.style.overflow = 'auto';
   }
+}
+
+// Add this function to create and inject the loading animation
+async function showLoadingAnimation(tabId) {
+  await chrome.scripting.executeScript({
+    target: {tabId: tabId},
+    func: () => {
+      // Create status indicator only
+      const style = document.createElement('style');
+      style.textContent = `
+        .analysis-status {
+          position: fixed;
+          top: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: rgba(0, 0, 0, 0.8);
+          color: #4285F4;
+          padding: 12px 24px;
+          border-radius: 8px;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 16px;
+          z-index: 999999;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(66, 133, 244, 0.3);
+        }
+      `;
+      document.head.appendChild(style);
+
+      // Create status indicator
+      const status = document.createElement('div');
+      status.className = 'analysis-status';
+      status.textContent = 'Analyzing article...';
+      document.body.appendChild(status);
+
+      // Update status messages
+      const statusMessages = [
+        "Processing article content...",
+        "Analyzing key points...",
+        "Evaluating claims...",
+        "Checking credibility...",
+        "Generating summary..."
+      ];
+
+      let messageIndex = 0;
+      const statusInterval = setInterval(() => {
+        status.textContent = statusMessages[messageIndex];
+        messageIndex = (messageIndex + 1) % statusMessages.length;
+      }, 2000);
+
+      // Store elements for cleanup
+      window._verifyAiElements = {
+        style,
+        status
+      };
+      window._verifyAiStatusInterval = statusInterval;
+    }
+  });
+}
+
+// Add this function to remove the loading animation
+async function removeLoadingAnimation(tabId) {
+  await chrome.scripting.executeScript({
+    target: {tabId: tabId},
+    func: () => {
+      // Clear the status update interval
+      if (window._verifyAiStatusInterval) {
+        clearInterval(window._verifyAiStatusInterval);
+      }
+
+      // Remove elements
+      if (window._verifyAiElements) {
+        const { style, status } = window._verifyAiElements;
+        style.remove();
+        status.remove();
+
+        // Clean up references
+        delete window._verifyAiElements;
+        delete window._verifyAiStatusInterval;
+      }
+    }
+  });
 }
