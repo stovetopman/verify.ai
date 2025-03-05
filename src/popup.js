@@ -223,18 +223,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to get a summary from OpenAI API
   async function getSummaryFromOpenAI(text) {
     const prompt = `
-      Analyze this article thoroughly and extract the 5 most significant claims or statements. For each claim:
-      1. Focus on factual assertions, key statistics, and major conclusions
-      2. Prioritize claims that are specific, verifiable, and impactful
-      3. Include relevant context and details that support the claim
-      4. Capture any quantitative data, expert opinions, or research findings
-      5. Maintain the original meaning and nuance of each claim
+      Analyze this article and extract 5 key claims. For each claim, include:
 
-      Format each claim as a single, clear sentence that captures the complete context.
-      Combine all claims into a single paragraph without enumeration.
+      1. Main Statement:
+         - Core factual assertion
+         - Key statistics or numbers
+         - Primary source or authority
+
+      2. Brief Context:
+         - Essential supporting details
+         - Relevant timeframe
+         - Direct impact
+
+      Format each claim as a clear, concise sentence (max 30 words each). Combine all claims into a single paragraph.
 
       Example output format:
-      The study found that 87% of climate scientists agree with the consensus on global warming. New satellite data reveals Arctic ice has decreased by 13% over the past decade. Research from Stanford University demonstrates a direct link between air pollution and respiratory diseases in urban areas. The government's economic report indicates a 3.2% growth in GDP during the last quarter. Multiple independent studies confirm that regular exercise reduces heart disease risk by up to 40% in adults over 50.
+      Stanford researchers found 87% of surveyed climate scientists agree with global warming consensus in 2023. NASA data shows Arctic ice decreased 13% since 2013, affecting coastal communities. Johns Hopkins study links urban air pollution to 28% higher respiratory disease rates in children and elderly. Federal Reserve reports 3.2% GDP growth in Q4, driven by tech sector expansion. Clinical trials show 150 minutes of weekly exercise reduces heart disease risk by 40% in adults over 50.
     `
   
     try {
@@ -245,11 +249,11 @@ document.addEventListener('DOMContentLoaded', () => {
           'Authorization': `Bearer ${OPENAI_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini', 
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: "system",
-              content: "You are a precise fact-checking assistant that extracts detailed, verifiable claims from articles while preserving important context and supporting details."
+              content: "You are a precise fact-checking assistant. Provide clear, concise claims with essential context and key statistics. Focus on accuracy and brevity."
             },
             {
               role: "user",
@@ -260,7 +264,8 @@ document.addEventListener('DOMContentLoaded', () => {
               content: text
             }
           ],
-          max_completion_tokens: 200, // Increased token limit for more detailed responses
+          max_tokens: 500, // Reduced token limit for more concise responses
+          temperature: 0.7
         }),
       });
 
