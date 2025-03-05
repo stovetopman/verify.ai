@@ -1,0 +1,13 @@
+# API Keys
+src/config.js
+src/config.local.js
+
+# Environment variables
+.env
+.env.local
+
+# Other common files to ignore
+node_modules/
+dist/
+.DS_Store
+*.log 
