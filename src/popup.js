@@ -6,7 +6,6 @@ async function checkClaim(articleContent) {
       throw new Error('No article content found');
     }
 
-    // Setup the request
     const response = await fetch(`https://idir.uta.edu/claimbuster/api/v2/score/text/sentences/${articleContent}`, {
       method: 'GET',
       headers: {
@@ -29,7 +28,74 @@ async function checkClaim(articleContent) {
   }
 }
 
-// Function to extract article content
+// Add YouTube transcript extraction function
+async function extractYouTubeTranscript() {
+  try {
+    console.log('Starting YouTube transcript extraction');
+    
+    // Check if we're on a YouTube video page
+    if (!window.location.hostname.includes('youtube.com') || !window.location.pathname.includes('/watch')) {
+      return null;
+    }
+
+    // Get video title
+    const title = document.querySelector('h1.ytd-video-primary-info-renderer')?.textContent?.trim();
+    
+    // Get video description
+    const description = document.querySelector('ytd-expander#description')?.textContent?.trim();
+    
+    // Get channel name
+    const channel = document.querySelector('ytd-channel-name')?.textContent?.trim();
+
+    // Get transcript
+    let transcript = '';
+    
+    // Click the "..." menu button if it exists
+    const menuButton = Array.from(document.querySelectorAll('button'))
+      .find(button => button.getAttribute('aria-label')?.includes('More actions'));
+    if (menuButton) menuButton.click();
+
+    // Wait for menu to appear and click "Show transcript"
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const transcriptButton = Array.from(document.querySelectorAll('tp-yt-paper-item'))
+      .find(item => item.textContent?.includes('Show transcript'));
+    if (transcriptButton) transcriptButton.click();
+
+    // Wait for transcript panel to load
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Get transcript text
+    const transcriptSegments = Array.from(document.querySelectorAll('ytd-transcript-segment-renderer'));
+    transcript = transcriptSegments
+      .map(segment => segment.textContent?.trim())
+      .filter(text => text && !text.match(/^\d+:\d+$/)) // Filter out timestamps
+      .join(' ');
+
+    if (!transcript) {
+      console.log('No transcript found, trying auto-generated captions');
+      // Try to get auto-generated captions
+      const captionTracks = document.querySelector('.ytp-caption-window-container')?.textContent;
+      if (captionTracks) {
+        transcript = captionTracks;
+      }
+    }
+
+    return {
+      title: title || document.title,
+      content: transcript,
+      excerpt: transcript?.substring(0, 200) || '',
+      byline: channel || '',
+      siteName: 'YouTube',
+      isVideo: true
+    };
+
+  } catch (error) {
+    console.error('Error extracting YouTube transcript:', error);
+    return null;
+  }
+}
+
+// Update the extractArticleContent function to handle YouTube videos
 function extractArticleContent() {
   try {
     console.log('Starting content extraction in page context');
@@ -37,6 +103,11 @@ function extractArticleContent() {
     if (!document || !document.body) {
       console.error('No document or body found');
       return null;
+    }
+
+    // Check if we're on YouTube
+    if (window.location.hostname.includes('youtube.com') && window.location.pathname.includes('/watch')) {
+      return extractYouTubeTranscript();
     }
 
     // Try to find the main article content using common selectors
@@ -626,7 +697,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try {
       const [tab] = await chrome.tabs.query({active: true, currentWindow: true});
       
-      // Show loading text with progress bar
+      // Show loading state
       const finalOutput = document.getElementById('final-output');
       finalOutput.innerHTML = `
         <div style="text-align: center; margin-top: 15px;">
@@ -661,126 +732,17 @@ document.addEventListener('DOMContentLoaded', function() {
           formattedScore: Math.round(claim.score * 100) + '%'
         }));
 
-      // Create and inject the floating panel
+      // Inject the results panel
       await chrome.scripting.executeScript({
         target: {tabId: tab.id},
-        func: (metric, score, sortedClaims, summaryText) => {
-          // Remove any existing panel
-          const existingPanel = document.getElementById('verify-ai-results-panel');
-          if (existingPanel) existingPanel.remove();
-
-          // Helper function for getting score colors
-          function getScoreColor(score) {
-            if (score >= 0.8) return "#4CAF50";  // High credibility
-            if (score >= 0.6) return "#90EE90";  // Probably credible
-            if (score >= 0.4) return "#FFD700";  // Somewhat credible
-            if (score >= 0.2) return "#FFA500";  // Not very credible
-            return "#FF4444";                    // Not credible
-          }
-
-          // Create the panel
-          const panel = document.createElement('div');
-          panel.id = 'verify-ai-results-panel';
-          panel.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 400px;
-            max-height: 90vh;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            z-index: 999999;
-            overflow-y: auto;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            animation: slideInPanel 0.3s ease-out;
-          `;
-
-          // Update the content sections to handle scrolling better
-          panel.innerHTML = `
-            <div style="padding: 15px; background-color: ${metric.color}15;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div style="display: flex; align-items: center;">
-                  <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${metric.color}; margin-right: 12px;"></div>
-                  <h4 style="margin: 0; font-size: 1.2rem;">${metric.text}</h4>
-                </div>
-                <button id="verify-ai-close-button" style="
-                  background: none;
-                  border: none;
-                  cursor: pointer;
-                  padding: 5px;
-                  font-size: 18px;
-                  color: #666;
-                ">×</button>
-              </div>
-
-              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
-                <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 5px;">Overall Score: ${score}/5</div>
-                <div style="font-size: 0.9rem; color: #666;">Based on analysis of ${sortedClaims.length} claims</div>
-              </div>
-
-              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
-                <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
-                <div style="max-height: 300px; overflow-y: auto;">
-                  ${sortedClaims.map((claim, index) => `
-                    <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)};">
-                      <div style="font-size: 0.9rem; margin-bottom: 4px;">${index + 1}. ${claim.text}</div>
-                      <div style="font-size: 0.8rem; color: #666; display: flex; align-items: center;">
-                        <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getScoreColor(claim.score)}; margin-right: 6px;"></span>
-                        Score: ${claim.formattedScore}
-                      </div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-
-              <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40;">
-                <div style="font-weight: 500; margin-bottom: 10px;">Article Summary:</div>
-                <div style="font-size: 0.9rem; line-height: 1.5;">
-                  ${summaryText}
-                </div>
-              </div>
-            </div>
-          `;
-
-          // Add styles for better scrolling
-          const style = document.createElement('style');
-          style.textContent = `
-            @keyframes slideInPanel {
-              from { transform: translateX(100%); opacity: 0; }
-              to { transform: translateX(0); opacity: 1; }
-            }
-            #verify-ai-results-panel::-webkit-scrollbar {
-              width: 8px;
-            }
-            #verify-ai-results-panel::-webkit-scrollbar-track {
-              background: #f1f1f1;
-              border-radius: 4px;
-            }
-            #verify-ai-results-panel::-webkit-scrollbar-thumb {
-              background: #888;
-              border-radius: 4px;
-            }
-            #verify-ai-results-panel::-webkit-scrollbar-thumb:hover {
-              background: #666;
-            }
-          `;
-          document.head.appendChild(style);
-
-          // Add close button functionality
-          panel.querySelector('#verify-ai-close-button').addEventListener('click', () => {
-            panel.remove();
-          });
-
-          document.body.appendChild(panel);
-        },
-        args: [metric, score, sortedClaims, summaryText]
+        function: injectResultsPanel,
+        args: [metric, score, sortedClaims, summaryText, articleData.isVideo]
       });
 
-      // Close the popup window immediately
+      // Close the popup
       window.close();
           
-        } catch (error) {
+    } catch (error) {
       console.error('Error in analysis:', error);
       document.getElementById('final-output').innerHTML = `
         <div style="text-align: center; color: #FF4444;">
@@ -890,99 +852,234 @@ function cleanWebpage() {
   return true;
 }
 
-// Add this function near the top with other utility functions
-function createFloatingPanel(metric, score, sortedClaims, summaryText) {
-  const panel = document.createElement('div');
-  panel.id = 'verify-ai-results-panel';
-  panel.style.cssText = `
+// Inside the injectResultsPanel function, update the panel content
+function injectResultsPanel(metric, score, sortedClaims, summaryText, isVideo = false) {
+  // Remove any existing panel first
+  const existingPanel = document.getElementById('verify-ai-results-panel');
+  if (existingPanel) existingPanel.remove();
+
+  // Create a shadow DOM container to isolate our styles
+  const container = document.createElement('div');
+  container.id = 'verify-ai-container';
+  container.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 400px;
-    max-height: 90vh;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-    z-index: 999999;
-    overflow-y: auto;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    animation: slideInPanel 0.3s ease-out;
+    bottom: 0;
+    width: 0;
+    z-index: 2147483647;
+    pointer-events: none;
   `;
 
-  // Add styles for the animation
+  // Create the panel with shadow DOM
+  const panel = document.createElement('div');
+  panel.id = 'verify-ai-results-panel';
+  panel.attachShadow({ mode: 'open' });
+
+  // Add styles to the shadow DOM
   const style = document.createElement('style');
   style.textContent = `
+    :host {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 400px;
+      max-height: 90vh;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      z-index: 2147483647;
+      overflow-y: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
     @keyframes slideInPanel {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+      from { transform: translateX(100%); }
+      to { transform: translateX(0); }
     }
-    #verify-ai-results-panel::-webkit-scrollbar {
+
+    .panel-content {
+      padding: 15px;
+      background-color: ${metric.color}15;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .title-container {
+      display: flex;
+      align-items: center;
+    }
+
+    .credibility-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: ${metric.color};
+      margin-right: 12px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .close-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 5px;
+      font-size: 18px;
+      color: #666;
+    }
+
+    .section {
+      background-color: white;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid ${metric.color}40;
+      margin-bottom: 15px;
+    }
+
+    .score {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .claims-container {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .claim-item {
+      padding: 8px;
+      margin-bottom: 8px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border-left: 3px solid ${getScoreColor(sortedClaims[0].score)};
+    }
+
+    .claim-text {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    .claim-score {
+      font-size: 0.8rem;
+      color: #666;
+      display: flex;
+      align-items: center;
+    }
+
+    .score-dot {
       width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
     }
-    #verify-ai-results-panel::-webkit-scrollbar-track {
-      background: #f1f1f1;
+
+    .summary {
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .video-info {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+      padding: 8px;
+      background: #f8f9fa;
       border-radius: 4px;
     }
-    #verify-ai-results-panel::-webkit-scrollbar-thumb {
-      background: #888;
-      border-radius: 4px;
-    }
-    #verify-ai-results-panel::-webkit-scrollbar-thumb:hover {
-      background: #666;
+
+    .video-icon {
+      width: 24px;
+      height: 24px;
+      margin-right: 8px;
+      color: #666;
     }
   `;
-  document.head.appendChild(style);
 
-  panel.innerHTML = `
-    <div style="padding: 15px; background-color: ${metric.color}15;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-        <div style="display: flex; align-items: center;">
-          <div style="width: 24px; height: 24px; border-radius: 50%; background-color: ${metric.color}; margin-right: 12px;"></div>
-          <h4 style="margin: 0; font-size: 1.2rem;">${metric.text}</h4>
+  // Create the panel content
+  const content = document.createElement('div');
+  content.className = 'panel-content';
+  content.innerHTML = `
+    <div class="header">
+      <div class="title-container">
+        <div class="credibility-dot"></div>
+        <h4 class="title">${metric.text}</h4>
+      </div>
+      <button class="close-button">×</button>
+    </div>
+
+    ${isVideo ? `
+      <div class="section">
+        <div class="video-info">
+          <svg class="video-icon" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14zM8 15v-6l6 3z"/>
+          </svg>
+          <div>Analyzing video transcript</div>
         </div>
-        <button id="verify-ai-close-button" style="
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 5px;
-          font-size: 18px;
-          color: #666;
-        ">×</button>
       </div>
+    ` : ''}
 
-      <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
-        <div style="font-size: 1.1rem; font-weight: 500; margin-bottom: 5px;">Overall Score: ${score}/5</div>
-        <div style="font-size: 0.9rem; color: #666;">Based on analysis of ${sortedClaims.length} claims</div>
-      </div>
+    <div class="section">
+      <div class="score">Overall Score: ${score}/5</div>
+      <div class="subtitle">Based on analysis of ${sortedClaims.length} claims</div>
+    </div>
 
-      <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40; margin-bottom: 15px;">
-        <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
-        <div style="max-height: 300px; overflow-y: auto;">
-          ${sortedClaims.map((claim, index) => `
-            <div style="padding: 8px; margin-bottom: 8px; background-color: #f8f9fa; border-radius: 4px; border-left: 3px solid ${getScoreColor(claim.score)};">
-              <div style="font-size: 0.9rem; margin-bottom: 4px;">${index + 1}. ${claim.text}</div>
-              <div style="font-size: 0.8rem; color: #666; display: flex; align-items: center;">
-                <span style="width: 8px; height: 8px; border-radius: 50%; background-color: ${getScoreColor(claim.score)}; margin-right: 6px;"></span>
-                Score: ${claim.formattedScore}
-              </div>
+    <div class="section">
+      <div style="font-weight: 500; margin-bottom: 10px;">Analyzed Claims:</div>
+      <div class="claims-container">
+        ${sortedClaims.map((claim, index) => `
+          <div class="claim-item">
+            <div class="claim-text">${index + 1}. ${claim.text}</div>
+            <div class="claim-score">
+              <span class="score-dot" style="background-color: ${getScoreColor(claim.score)}"></span>
+              Score: ${claim.formattedScore}
             </div>
-          `).join('')}
-        </div>
+          </div>
+        `).join('')}
       </div>
+    </div>
 
-      <div style="background-color: white; padding: 12px; border-radius: 6px; border: 1px solid ${metric.color}40;">
-        <div style="font-weight: 500; margin-bottom: 10px;">Article Summary:</div>
-        <div style="font-size: 0.9rem; line-height: 1.5;">
-          ${summaryText}
-        </div>
-      </div>
+    <div class="section">
+      <div style="font-weight: 500; margin-bottom: 10px;">${isVideo ? 'Video Summary:' : 'Article Summary:'}</div>
+      <div class="summary">${summaryText}</div>
     </div>
   `;
 
   // Add close button functionality
-  panel.querySelector('#verify-ai-close-button').addEventListener('click', () => {
-    panel.remove();
+  content.querySelector('.close-button').addEventListener('click', () => {
+    container.remove();
   });
 
-  return panel;
+  // Assemble the panel
+  panel.shadowRoot.appendChild(style);
+  panel.shadowRoot.appendChild(content);
+  container.appendChild(panel);
+  document.body.appendChild(container);
+
+  // Force panel to be visible
+  requestAnimationFrame(() => {
+    panel.style.display = 'block';
+    panel.style.visibility = 'visible';
+    panel.style.opacity = '1';
+    panel.style.pointerEvents = 'auto';
+  });
 }
